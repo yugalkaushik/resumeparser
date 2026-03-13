@@ -3,6 +3,7 @@
 import os
 import multiprocessing as mp
 import io
+import json
 import spacy
 import pprint
 from spacy.matcher import Matcher
@@ -15,13 +16,20 @@ class ResumeParser(object):
         self,
         resume,
         skills_file=None,
-        custom_regex=None
+        custom_regex=None,
+        config_file=None
     ):
         nlp = spacy.load('en_core_web_sm')
-        custom_nlp = spacy.load(os.path.dirname(os.path.abspath(__file__)))
+        # Try to load custom NER model, fallback to standard model if not available
+        try:
+            custom_nlp = spacy.load(os.path.dirname(os.path.abspath(__file__)))
+        except OSError:
+            # Custom model not available, use standard model as fallback
+            custom_nlp = nlp
         self.__skills_file = skills_file
         self.__custom_regex = custom_regex
         self.__matcher = Matcher(nlp.vocab)
+        self.__config = self.__load_config(config_file)
         self.__details = {
             'name': None,
             'email': None,
@@ -46,9 +54,50 @@ class ResumeParser(object):
         self.__custom_nlp = custom_nlp(self.__text_raw)
         self.__noun_chunks = list(self.__nlp.noun_chunks)
         self.__get_basic_details()
+    
+    def __load_config(self, config_file):
+        """Load extraction configuration from JSON file"""
+        if config_file is None:
+            # Default: extract all fields
+            return {
+                'name': True,
+                'email': True,
+                'mobile_number': True,
+                'skills': True,
+                'college_name': True,
+                'degree': True,
+                'designation': True,
+                'experience': True,
+                'company_names': True,
+                'no_of_pages': True,
+                'total_experience': True,
+            }
+        
+        try:
+            with open(config_file, 'r') as f:
+                config_data = json.load(f)
+                return config_data.get('fields', {})
+        except (FileNotFoundError, json.JSONDecodeError):
+            print(f"⚠️  Config file '{config_file}' not found or invalid. Using defaults.")
+            return self.__load_config(None)
 
     def get_extracted_data(self):
-        return self.__details
+        """Get extracted data filtered by configuration"""
+        return self.__apply_config_filter()
+    
+    def __apply_config_filter(self):
+        """Filter extracted data based on config file"""
+        filtered_data = {}
+        
+        for field, should_extract in self.__config.items():
+            if should_extract:
+                # Include field from details (will be None if not found)
+                filtered_data[field] = self.__details.get(field, None)
+            else:
+                # Field not requested, set to None
+                filtered_data[field] = None
+        
+        return filtered_data
 
     def __get_basic_details(self):
         cust_ent = utils.extract_entities_wih_custom_model(
@@ -62,9 +111,6 @@ class ResumeParser(object):
                     self.__noun_chunks,
                     self.__skills_file
                 )
-        # edu = utils.extract_education(
-        #               [sent.string.strip() for sent in self.__nlp.sents]
-        #       )
         entities = utils.extract_entity_sections_grad(self.__text_raw)
 
         # extract name
@@ -82,30 +128,50 @@ class ResumeParser(object):
         # extract skills
         self.__details['skills'] = skills
 
-        # extract college name
-        try:
-            self.__details['college_name'] = entities['College Name']
-        except KeyError:
-            pass
+        # extract education section
+        if 'education' in entities and len(entities['education']) > 0:
+            edu_section = entities['education']
+            # First line usually contains degree
+            if len(edu_section) > 0:
+                self.__details['degree'] = edu_section[0].strip()
+            # Second line usually contains college name
+            if len(edu_section) > 1:
+                self.__details['college_name'] = edu_section[1].strip()
 
-        # extract education Degree
-        try:
-            self.__details['degree'] = cust_ent['Degree']
-        except KeyError:
-            pass
+        # extract designation (from experience section if available)
+        if 'experience' in entities and len(entities['experience']) > 0:
+            exp_section = entities['experience']
+            # Look for designation/title patterns in first few lines
+            for line in exp_section[:3]:
+                line_lower = line.lower()
+                if any(title in line_lower for title in ['engineer', 'developer', 'analyst', 'manager', 'lead', 'designer', 'architect']):
+                    self.__details['designation'] = line.strip()
+                    break
 
-        # extract designation
-        try:
-            self.__details['designation'] = cust_ent['Designation']
-        except KeyError:
-            pass
+        # extract company names from ORG entities
+        if 'ORG' in cust_ent:
+            # Filter out tech terms and common words that aren't companies
+            non_company_words = {
+                'javascript', 'typescript', 'python', 'java', 'c', 'sql', 'c++', 'c#',
+                'html', 'html5', 'css', 'node', 'node.js', 'react', 'angular', 'vue', 'vue.js',
+                'git', 'github', 'linux', 'unix', 'windows',
+                'education', 'experience', 'projects', 'skills', 'certifications',
+                'data structures', 'algorithms', 'programming', 'coding', 'framework',
+                'database', 'sql', 'mysql', 'postgresql', 'mongodb',
+                'api', 'rest', 'graphql', 'microservices', 'architecture',
+                'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'ci/cd',
+                'agile', 'scrum', 'kanban', 'testing', 'automation',
+                'object-oriented', 'design patterns', 'solid', 'dry',
+                'semantic', 'processing', 'foundation'  # Known false positives
+            }
+            companies = [
+                org for org in cust_ent['ORG'] 
+                if org.lower() not in non_company_words and len(org) > 2 and ' ' in org or len(org) > 5
+            ]
+            if companies:
+                self.__details['company_names'] = list(set(companies))
 
-        # extract company names
-        try:
-            self.__details['company_names'] = cust_ent['Companies worked at']
-        except KeyError:
-            pass
-
+        # extract experience
         try:
             self.__details['experience'] = entities['experience']
             try:
@@ -118,6 +184,7 @@ class ResumeParser(object):
                 self.__details['total_experience'] = 0
         except KeyError:
             self.__details['total_experience'] = 0
+        
         self.__details['no_of_pages'] = utils.get_number_of_pages(
                                             self.__resume
                                         )

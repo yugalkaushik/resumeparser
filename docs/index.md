@@ -1,52 +1,79 @@
-# Pyresparser
+# PyResParser
 
-A simple resume parser used for extracting information from resumes
+A simple resume parser used for extracting information from resumes.
 
-# Features
+**Auto-saves extracted data to `output/` folder as JSON!**
 
-- Extract name
-- Extract email
-- Extract mobile numbers
-- Extract skills
-- Extract total experience
-- Extract college name
-- Extract degree
-- Extract designation
-- Extract company names
+## Quick Start
 
-# Getting Started
-
-## Installation
-
-- You can install this package using
+### 1. Setup (One-time)
 
 ```bash
-pip install pyresparser
-```
+cd /home/yugalkaushik/projects/pyresparser
 
-- For NLP operations we use spacy and nltk. Install them using below commands:
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-```bash
-# spaCy
+# Install dependencies
+pip install -r requirements.txt
+
+# Download NLP models
 python -m spacy download en_core_web_sm
-
-# nltk
-python -m nltk.downloader words
-python -m nltk.downloader stopwords
+python -m nltk.downloader words stopwords
 ```
 
-## Usage
+### 2. Run - Parse a Resume
 
-- Import it in your Python project
-
-```python
-from pyresparser import ResumeParser
-data = ResumeParser('/path/to/resume/file').get_extracted_data()
+```bash
+python3 -m pyresparser.command_line resume.pdf
 ```
 
-## Result
+That's it! Data is automatically saved to `output/Resume_Name_TIMESTAMP.json`
 
-The module would return a list of dictionary objects with result as follows:
+### 3. (Optional) Selective Field Extraction
+
+Create a config file to extract only specific fields:
+
+```bash
+python3 -m pyresparser.command_line resume.pdf --config-file extraction_config.json
+```
+
+See [CLI Documentation](cli.md) for configuration details.
+
+## Extracted Data
+
+Example output:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "mobile_number": "9876543210",
+  "skills": ["Python", "JavaScript", "React", "Django"],
+  "total_experience": 5.5,
+  "college_name": "MIT",
+  "company_names": ["Google"],
+  "experience": [...],
+  "no_of_pages": 2
+}
+```
+
+## Features
+
+- ✓ Parse resume (PDF/DOCX)
+- ✓ Extract: name, email, phone, skills
+- ✓ Extract: experience, company, education
+- ✓ Auto-save to JSON in `output/` folder
+- ✓ Fast and accurate
+
+## Output Location
+
+All parsed resumes are saved in:
+```
+output/
+└── Resume_Name_YYYYMMDD_HHMMSS.json
+```
 
 ```
 [

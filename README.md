@@ -4,8 +4,6 @@
 A simple resume parser used for extracting information from resumes
 ```
 
-Built with ❤︎ and :coffee: by  [Omkar Pathak](https://github.com/OmkarPathak)
-
 ---
 
 [![GitHub stars](https://img.shields.io/github/stars/OmkarPathak/pyresparser.svg)](https://github.com/OmkarPathak/pyresparser/stargazers)

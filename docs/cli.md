@@ -1,67 +1,100 @@
-# CLI
+# CLI Usage
 
-`pyresparser` comes with a **cli** option which you can use right away in your terminal
+Simple resume parsing from command line.
 
+## Commands
+
+### Basic parsing (extract all fields)
 ```bash
-usage: pyresparser [-h] [-f FILE] [-d DIRECTORY] [-r REMOTEFILE]
-                   [-sf SKILLSFILE]
-
-optional arguments:
-  -h, --help                                show this help message and exit
-  -f FILE, --file FILE                      resume file to be extracted
-  -d DIRECTORY, --directory DIRECTORY       directory containing all the resumes to be extracted
-  -r REMOTEFILE, --remotefile REMOTEFILE    remote path for resume file to be extracted
-  -sf SKILLSFILE, --skillsfile SKILLSFILE   custom skills CSV file against which skills are searched for
+python3 -m pyresparser.command_line <resume_file>
 ```
 
-## Parsing single resume
-
-For extracting data from a **single resume** file, use
-
+### Selective extraction (use config file)
 ```bash
-pyresparser -f /path/to/resume/file
+python3 -m pyresparser.command_line <resume_file> --config-file <config.json>
 ```
 
-## Parsing mutliple resumes
+## Examples
 
-For extracting data from several resumes, place them in a **directory** and then execute
-
-```bash
-pyresparser -d /path/to/resume/directory/
-```
-
-## Parsing hosted resumes
-
-For extracting data from **remote resumes**, execute
+### Parse a resume with default settings
 
 ```bash
-pyresparser -r https://www.example.com/path/to/resume/file
+python3 -m pyresparser.command_line resume.pdf
 ```
 
-## Specifying skills explicitly
+Output:
+```
+📄 Parsing: resume.pdf
 
-Pyresparser comes with built-in skills file that defaults to many technical skills. You can find the default skills file [here](https://github.com/OmkarPathak/pyresparser/blob/master/pyresparser/skills.csv).
+✅ Success! Data saved to: output/Resume_Name_20260314_010703.json
 
-For extracting data against your specified skills, create a CSV file with no headers and execute
+EXTRACTED DATA:
+{...extracted data...}
+```
+
+### Parse with selective field extraction
 
 ```bash
-pyresparser -sf /path/to/resume/file.csv -f /path/to/resume/file
+python3 -m pyresparser.command_line resume.pdf --config-file extraction_config.json
 ```
 
-## Specifying export format
+Output:
+```
+📄 Parsing: resume.pdf
+📋 Using config: extraction_config.json
 
-For specifying the export format you can use the following option:
+✅ Success! Data saved to: output/Resume_Name_20260314_010704.json
+
+EXTRACTED DATA:
+{...only requested fields...}
+```
+
+### Parse from different locations
 
 ```bash
-pyresparser -e json -f /path/to/resume/file
+# From current directory
+python3 -m pyresparser.command_line resume.pdf
+
+# From subdirectory
+python3 -m pyresparser.command_line ./resumes/resume.pdf
+
+# With full path
+python3 -m pyresparser.command_line /home/user/documents/resume.pdf
 ```
 
-Note: Currently only JSON export is supported
+## Configuration (Optional)
 
-## Custom regex for parsing phone numbers
+Create a JSON config file to specify which fields to extract:
 
-While pyresparser parses most of the phone numbers correctly, there is a possibility of new patterns being added in near future. Hence, we can explicitly provide the regex required to parse the desired phone numbers. This can be done using
-
-```bash
-pyresparser -re '<pattern>' -f /path/to/resume/file
+```json
+{
+  "fields": {
+    "name": true,
+    "email": true,
+    "mobile_number": true,
+    "skills": false,
+    "college_name": false,
+    "degree": false,
+    "designation": false,
+    "experience": false,
+    "company_names": false,
+    "total_experience": false,
+    "no_of_pages": false
+  }
+}
 ```
+
+- Set field to `true` to extract it
+- Set field to `false` to skip it (result will be `null`)
+- Template file `extraction_config.json` has all fields set to `true` by default
+
+## Output
+
+- ✓ Data automatically saved to `output/` folder
+- ✓ Filename format: `Name_YYYYMMDD_HHMMSS.json`
+- ✓ Easy to find and manage
+
+## Supported Formats
+
+- PDF files
+- DOCX files

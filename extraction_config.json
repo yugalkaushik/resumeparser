@@ -1,0 +1,15 @@
+{
+  "description": "Resume extraction configuration. Set to true to extract that field, false to skip.",
+  "fields": {
+    "name": true,
+    "email": true,
+    "mobile_number": true,
+    "skills": true,
+    "college_name": true,
+    "degree": true,
+    "designation": true,
+    "experience": true,
+    "total_experience": true,
+    "no_of_pages": true
+  }
+}

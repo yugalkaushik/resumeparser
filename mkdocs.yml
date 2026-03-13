@@ -1,11 +1,17 @@
-site_name: pyresparser
+site_name: PyResParser
+name: PyResParser - Resume Parser
 nav:
     - Home: index.md
     - CLI: cli.md
-repo_url: https://github.com/OmkarPathak/pyresparser
-site_author: Omkar Pathak
-google_analytics: ['UA-111548790-1', 'omkarpathak.in']
+repo_url: https://github.com/yugalkaushik/resumeparser
+repo_name: yugalkaushik/resumeparser
+site_author: Yugal Kaushik
 markdown_extensions:
     - toc:
         permalink: True
         separator: "_"
+theme:
+    name: material
+    palette:
+        primary: indigo
+        accent: indigo
